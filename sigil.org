@@ -1,0 +1,16 @@
+* Sigils
+** General Idea
+   You have a webcam or a canvas surface and you draw the sigils.
+   They are recorded and fire off recognition events.
+   These events are turned to musuci
+** Sigil Idea
+   - Sigil Recognition
+     - scale and rotation invariant?
+     - position of match and likelyhood of match sent out
+     - map to music
+   - Sigil Generation
+     - using parameters generate sigils?
+     - curvey and painful?
+   - Random shape association with features
+   - Sigil drawer
+     - you have  circle or something and you draw the sigil..
