@@ -25,6 +25,9 @@ open Shrinker;;
 open Rotter;;
 open Contour;;
 open Kmeans;;
+open Cmlib;;
+open Sobel;;
+
 
 
 (* sigils/ohm-font/ *)
@@ -39,7 +42,7 @@ let load_sigils () =
   let label_bitmaps = List.map (fun (s,(b,f)) -> (s,b)) (Captchas.load_dir_chars sigils_chars  sigil_font) in
     Abez.mapi (fun i (s,b) -> 
                  let out = "segments/Char." ^ (s) ^ "."^(string_of_int i)^".pts" in				      
-                   print_endline out;
+                   prerr_endline out;
                    let pts = our_rotter b in
 	             Rotter.print_rotter_to_file out pts;
 		     (s,pts)
@@ -99,23 +102,42 @@ let sigil_segmenter rgb =
   Captchas.fill_segmenter ~diag:false ~istext:is_black rgb
 ;;
 
+let safe_basename file =
+  try
+    get_basename file
+  with 
+      _ -> file
+;;
+  
 
 let sigil_identify db file rgb =
+  (* prerr_endline "Segment rgb"; *)
   let segments = sigil_segmenter rgb in
-  let segments = segment_sort segments in 
-  let pts_list = Abez.mapi (
-    fun i (x,region) ->
-      (* rotter might not be the best, we might just try bitmap comparison *)
-      let out = "segments/" ^ (get_basename file) ^ ".seg."^(string_of_int i)^".pts" in				      
-      let pts = our_rotter x in
-	Rotter.print_rotter_to_file out pts;
-	(pts,region)) segments in
-  let labels = List.map 
-    (fun (pts,region) -> 
-       let (m,d) = find_closest db pts in
-         (m,d,region) ) 
-    pts_list in
-    labels
+    if (List.length segments > 30) then
+      []
+    else
+      begin
+        (* prerr_endline "Sort Segments rgb"; *)
+        let segments = segment_sort segments in 
+          (* prerr_endline "Rotter segments"; *)
+          let pts_list = Abez.mapi (
+            fun i (x,region) ->
+              (* rotter might not be the best, we might just try bitmap comparison *)
+              (* let out = "segments/" ^ (get_basename file) ^ ".seg."^(string_of_int i)^".pts" in				      *)
+              (* prerr_endline "Run our rotter"; *)
+                let pts = our_rotter x in
+                  (* prerr_endline "Print our rotter"; *)
+                  
+	          (* Rotter.print_rotter_to_file out pts; *)
+	          (pts,region)) segments in
+            (* prerr_endline "Find closest"; *)
+            let labels = List.map 
+              (fun (pts,region) -> 
+                 let (m,d) = find_closest db pts in
+                   (m,d,region) ) 
+              pts_list in
+              labels
+      end
 ;;
     
 
@@ -127,7 +149,7 @@ let sigil_main () =
     List.iter (
       fun file ->
         let sigil_identify = sigil_identify db file in
-	print_endline ("File: "^file);
+	  print_endline ("File: "^file);
         let rgb = Captchas.load_rgb_file file in
           List.iter
             (fun (best_match,distance,region) ->
@@ -141,3 +163,55 @@ let sigil_main () =
     ) files
 ;;
 
+let cleanup bmp =
+  let width = bmp#width in
+  let height = bmp#height in
+  for y = 0 to 4 do
+    for x = 0 to (width - 1) do
+      bmp#unsafe_set x y { r = 255; g = 255; b = 255 }
+    done;
+  done;
+    bmp
+;;
+
+let sigil_webcam () =
+  let width = 324 in
+  let height = 248 in
+  let keyname = "324x248_rgb_int_webcam" in
+  let db = load_sigils () in
+  let (sock,fdi,fdo) = Cmlib.cm_connect "127.0.0.1" 9911 in
+  let frame = ref 0 in
+    Cmlib.cm_lossyrequire fdo keyname;
+    while(true) do
+      let (buffer:int array) = Cmlib.cm_read_buffer fdi in
+        (* prerr_endline ("Got a buffer "^(string_of_int !frame)); *)
+        let bmp = Captchas.flatarray_to_bmp ~f:rgb width height buffer in
+        let filename = "segments/Webcam-frame-"^(string_of_int !frame)^".png" in
+          (* now we clean up the image! *)
+          (* prerr_endline "Shrink buffer!"; *)
+          let shrunk = Shrinker.shrink bmp in
+          let shrunk = cleanup shrunk in
+            (* prerr_endline ("Saving buffer " ^ filename);
+	       shrunk#save filename (Some Png) [];   *)
+            (* prerr_endline "Identify"; *)
+            let identities = sigil_identify db ("Webcam-frame-"^(string_of_int !frame))  shrunk in
+              (* prerr_endline "Report";  *)
+              List.iter
+                (fun (best_match,distance,region) ->
+                   let (x1,y1,x2,y2) = region in
+                     print_endline 
+                     (String.concat " "
+                       [ string_of_float (Unix.time ()) ;
+                         best_match ;
+                         string_of_float distance ;
+                         string_of_int x1;
+                         string_of_int y1;
+                         string_of_int x2 ;
+                         string_of_int y2
+                       ]);
+                ) identities;
+                
+              frame := !frame + 1;
+    done;
+;;
+        

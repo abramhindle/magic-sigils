@@ -163,8 +163,10 @@ rogers_segmenter:	rogers_segmenter.ml abez.cmx shape.cmx captchas.cmx shrinker.c
 digg:	digg_solver.ml abez.cmx munkres.cmx shape.cmx contour.cmx captchas.cmx shrinker.cmx pca.cmx rotter.cmx kmeans.cmx digg.cmx
 	ocamlopt.opt -w s -o digg  -I +camlimages ${COMPFLAGS_CAMLIMAGES}  ${LINKFLAGS_CAMLIMAGES} lapjv.cmx abez.cmx munkres.cmx shape.cmx captchas.cmx shrinker.cmx contour.cmx pca.cmx rotter.cmx kmeans.cmx digg.cmx digg_solver.ml
 
-sigils_driver:	sigils_driver.ml abez.cmx munkres.cmx shape.cmx contour.cmx captchas.cmx shrinker.cmx pca.cmx rotter.cmx kmeans.cmx sigils.cmx
-	ocamlopt.opt -w s -o sigils_driver  -I +camlimages ${COMPFLAGS_CAMLIMAGES}  ${LINKFLAGS_CAMLIMAGES} lapjv.cmx abez.cmx munkres.cmx shape.cmx captchas.cmx shrinker.cmx contour.cmx pca.cmx rotter.cmx kmeans.cmx sigils.cmx sigils_driver.ml
+sigils_driver:	sigils_driver.ml abez.cmx munkres.cmx shape.cmx contour.cmx captchas.cmx shrinker.cmx pca.cmx rotter.cmx kmeans.cmx cmlib.cmx sigils.cmx
+	ocamlopt.opt -w s -o sigils_driver -I ocaml-v4l/ -I +camlimages ${COMPFLAGS_CAMLIMAGES}  ${LINKFLAGS_CAMLIMAGES} unix.cmxa lapjv.cmx abez.cmx munkres.cmx shape.cmx captchas.cmx shrinker.cmx contour.cmx pca.cmx rotter.cmx kmeans.cmx cmlib.cmx sobel.cmx sigils.cmx sigils_driver.ml
+sigils_webcam:	sigils_webcam.ml abez.cmx munkres.cmx shape.cmx contour.cmx captchas.cmx shrinker.cmx pca.cmx rotter.cmx kmeans.cmx cmlib.cmx ocaml-v4l/sobel.cmx  sigils.cmx
+	ocamlopt.opt -w s -o sigils_webcam -I ocaml-v4l/  -I +camlimages ${COMPFLAGS_CAMLIMAGES}  ${LINKFLAGS_CAMLIMAGES} unix.cmxa lapjv.cmx abez.cmx munkres.cmx shape.cmx captchas.cmx shrinker.cmx contour.cmx pca.cmx rotter.cmx kmeans.cmx  cmlib.cmx ocaml-v4l/sobel.cmx sigils.cmx sigils_webcam.ml
 
 
 
@@ -255,7 +257,7 @@ digg.cmx: digg.ml captchas.cmx abez.cmx lapjv.cmx munkres.cmx shape.cmx contour.
 	ocamlopt.opt -c -I +camlimages ${COMPFLAGS_CAMLIMAGES}  ${LINKFLAGS_CAMLIMAGES} lapjv.cmx munkres.cmx shape.cmx abez.cmx contour.cmx kmeans.cmx digg.ml
 
 sigils.cmx: sigils.ml captchas.cmx abez.cmx lapjv.cmx munkres.cmx shape.cmx contour.cmx kmeans.cmx
-	ocamlopt.opt -c -I +camlimages ${COMPFLAGS_CAMLIMAGES}  ${LINKFLAGS_CAMLIMAGES} lapjv.cmx munkres.cmx shape.cmx abez.cmx contour.cmx kmeans.cmx sigils.ml
+	ocamlopt.opt -c -I ocaml-v4l/ -I +camlimages ${COMPFLAGS_CAMLIMAGES}  ${LINKFLAGS_CAMLIMAGES} lapjv.cmx munkres.cmx shape.cmx abez.cmx contour.cmx kmeans.cmx sigils.ml
 
 
 seedpeer.cmx: seedpeer.ml captchas.cmx abez.cmx lapjv.cmx munkres.cmx shape.cmx contour.cmx kmeans.cmx digg.cmx
@@ -366,6 +368,8 @@ webcam_provider:        webcam_provider.ml ocaml-v4l/grabcaml.cmxa
 webcam_requirer:        webcam_requirer.ml ocaml-v4l/grabcaml.cmxa
 	ocamlopt.opt -o webcam_requirer -I ocaml-v4l/ -I `ocamlfind query sdl` grabcaml.cmxa  unix.cmxa bigarray.cmxa sdl.cmxa  sobel.cmx webcam_requirer.ml ${OCAMLIB}
 
+cmlib.cmx:        cmlib.ml
+	ocamlopt.opt -c  unix.cmxa cmlib.ml ${OCAMLIB}
 
 
 

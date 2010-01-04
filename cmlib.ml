@@ -1,5 +1,7 @@
 open Unix;;
 
+let val_status x y = ();;
+
 let cm_connect server port = 
   let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
   let _ = Unix.connect sock (Unix.ADDR_INET (Unix.inet_addr_of_string server, port)) in
@@ -26,6 +28,12 @@ let cm_require fdo keyname =
   cm_write_line fdo ("REQUIRE "^keyname);
   flush fdo
 ;;
+let cm_lossyrequire fdo keyname =
+  cm_write_line fdo ("LOSSYREQUIRE "^keyname);
+  flush fdo
+;;
+
+
 let cm_send_buffer fdo key buf =
   let str =  Marshal.to_string buf [ Marshal.No_sharing ] in
     cm_write_line ~flush:false fdo key;
@@ -33,6 +41,7 @@ let cm_send_buffer fdo key buf =
     output_string fdo str;
     cm_endline fdo
 ;;
+(* 
 let cm_send_int_array fdo key buf =
   cm_write_line ~flush:false fdo key;
   cm_write_line ~flush:false fdo (string_of_int (size*4));
@@ -41,6 +50,7 @@ let cm_send_int_array fdo key buf =
   done;
   cm_endline fdo;
 ;;
+*)
 
 let cm_read_buffer fdi =
   let key = input_line fdi in
@@ -66,6 +76,7 @@ let cm_read_buffer fdi =
 	    arr
 ;;
 
+(*
 let cm_read_int_array fdi buffer =
   let key = input_line fdi in
     val_status "key" key;
@@ -81,3 +92,4 @@ let cm_read_int_array fdi buffer =
 	let other =   input_line fdi in  
 	  buffer
 ;;
+*)

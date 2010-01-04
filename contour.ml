@@ -62,7 +62,7 @@ let contour bmp =
       is_text (bmp#get x y)
   in
   let not_text_getter x y = not (getter x y) in
-  prerr_endline ((string_of_int width) ^ " " ^(string_of_int height));
+  (* prerr_endline ((string_of_int width) ^ " " ^(string_of_int height)); *)
   let l = ref [] in
     for y = 0 to height - 1 do
       for x = 0 to width - 1 do

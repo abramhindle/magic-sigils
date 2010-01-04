@@ -1083,3 +1083,16 @@ let bmp_to_array ~f bmp =
 	   (f (bmp#get x y))
       )
 ;;
+let flatarray_to_bmp ~f width height buffer =
+  let n = width * height in
+  let out_bmp = new rgb24 width height in
+
+    for y = 0 to (height-1) do
+      let wy = width*y in
+	for x = 0 to (width-1) do
+	  let (r,g,b) = f (buffer.(wy + x)) in
+            out_bmp#unsafe_set x y {r = r; g = g; b = b}
+        done;
+    done;
+    out_bmp
+;;

@@ -157,29 +157,81 @@ let writer listener sock fdi =
   try 
     while true do 
       wstatus "locking";
+      wstatus "Waiting while empty";
+      Mutex.lock listener.mutex;
+      while (Queue.is_empty listener.queue) do
+	Condition.wait listener.cond listener.mutex;
+	wstatus "Waiting while empty x2";
+      done;
+      Mutex.unlock listener.mutex;
+      (* why are we giving up the lock? well because 
+         the condition was just to allow us to sleep.
+         Now we're ready we start popping
+      *)
+        while (not (Queue.is_empty listener.queue)) do
+	  wstatus "Popping queue";
+          Mutex.lock listener.mutex;
+          if (not (Queue.is_empty listener.queue)) then
+            begin
+	      let elm  = Queue.pop listener.queue in
+              let _ = Mutex.unlock listener.mutex in
+	      let size = String.length elm in
+	        wstatus ("Unlocking , have["^(string_of_int size)^"]");
+	        write_line fdi listener.key;
+	        write_line fdi (string_of_int (size - 1));
+	        output fdi elm 0 size; 
+	        write_endline fdi; 
+            end
+          else
+            Mutex.unlock listener.mutex
+        done;
+	()
+    done
+  with (End_of_file) -> ()
+
+let pop_everything queue =
+  let elm = Queue.pop queue in
+  let rec helper last =
+    if (Queue.is_empty queue) then
+      last
+    else
+      helper (Queue.pop queue)
+  in
+    helper elm
+;;
+
+let lossywriter listener sock fdi =
+  try 
+    while true do 
+      wstatus "locking";
       Mutex.lock listener.mutex;
       wstatus "Waiting while empty";
       while (Queue.is_empty listener.queue) do
 	Condition.wait listener.cond listener.mutex;
 	wstatus "Waiting while empty x2";
       done;
-
-      while (not (Queue.is_empty listener.queue)) do
-	wstatus "Popping queue";
-	let elm  = Queue.pop listener.queue in
-	let size = String.length elm in
-	    wstatus ("Unlocking , have["^(string_of_int size)^"]");
-
-	    write_line fdi listener.key;
-	    write_line fdi (string_of_int (size - 1));
-	    output fdi elm 0 size; 
-(*	    write_string fdi elm ;*)
-	    write_endline fdi; 
-      done;
-      let _    = Mutex.unlock listener.mutex in
-	()
+      (* we're locked right here *)
+      if (not (Queue.is_empty listener.queue)) then
+        begin
+          (* still locked! *)
+	  wstatus "Popping queue";
+          let elm = pop_everything listener.queue in
+            (* Queue.clear listener.queue; *)
+            Mutex.unlock listener.mutex;
+            (* not locked *)
+	    let size = String.length elm in
+	      wstatus ("Unlocking , have["^(string_of_int size)^"]");
+	      write_line fdi listener.key;
+	      write_line fdi (string_of_int (size - 1));
+	      output fdi elm 0 size; 
+              (*	    write_string fdi elm ;*)
+	      write_endline fdi; 
+        end
+      else
+        Mutex.unlock listener.mutex; (* not locked *)
     done
   with (End_of_file) -> ()
+
     
 (* DEQUEUE AFTER FAILURE UNLOCK MUTEX DURING FAILURE *)
 
@@ -205,10 +257,14 @@ let server (sock,s) =
     try
       if (r = "PROVIDE") then
 	reader key s fdi
+      else if (r = "REQUIRE") then
+        let listener = make_listener key in
+	  writer listener s fdo
+      else if (r = "LOSSYREQUIRE") then
+        let listener = make_listener key in
+	  lossywriter listener s fdo
       else
-      let listener = make_listener key in
-	writer listener s fdo
-	  
+        raise End_of_file
     with (End_of_file) -> ();
       Unix.close s;
       Unix.close sock
