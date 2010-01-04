@@ -360,6 +360,15 @@ punbb.cmx: punbb.ml captchas.cmx abez.cmx lapjv.cmx munkres.cmx shape.cmx contou
 munkres_test: munkres_test.ml munkres.cmx
 	ocamlopt.opt -o munkres_test munkres.cmx munkres_test.ml
 
+
+webcam_provider:        webcam_provider.ml ocaml-v4l/grabcaml.cmxa
+	ocamlopt.opt -o webcam_provider -I ocaml-v4l/ -I `ocamlfind query sdl` grabcaml.cmxa  unix.cmxa bigarray.cmxa sdl.cmxa  sobel.cmx webcam_provider.ml ${OCAMLIB}
+webcam_requirer:        webcam_requirer.ml ocaml-v4l/grabcaml.cmxa
+	ocamlopt.opt -o webcam_requirer -I ocaml-v4l/ -I `ocamlfind query sdl` grabcaml.cmxa  unix.cmxa bigarray.cmxa sdl.cmxa  sobel.cmx webcam_requirer.ml ${OCAMLIB}
+
+
+
+
 clean:
 
 IMAGES=
