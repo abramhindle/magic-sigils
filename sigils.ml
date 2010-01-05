@@ -32,7 +32,7 @@ open Sobel;;
 
 (* sigils/ohm-font/ *)
 let sigils_chars = [ "Do" ; "Ka"; "Ohm"; "Xs" ] ;;
-let sigil_font = "sigils/ohm-font";;
+let sigil_font = "sigils/ohm-font4";;
 let our_rotter b =
   let pts = Rotter.rotter b in
     Contour.scale_points (-100.0,-100.0) (100.0,100.0) pts
@@ -91,6 +91,25 @@ let find_closest label_bitmaps pt_list =
     (l,d)
 ;;
 
+let find_closest_all_reflections labels pt_list =
+  let dists =
+    List.map (
+      find_closest labels)
+      (
+        pt_list :: (
+          List.map (fun (x,y) -> List.map (fun (x',y') -> (x *. x', y*. y')) pt_list)
+            [(-1.0,1.0) ; (-1.0,-1.0) ; (1.0,-1.0)]
+        )
+      )
+  in
+    List.fold_left 
+      (fun (l,d) (l',d') ->
+         if (d < d') then
+           (l,d)
+         else
+           (l',d')) (List.hd dists) dists
+;;
+
 let arg_parse_files () = 
   let files = ref [] in
     Arg.parse [] (fun s -> files := s :: !files) "bitmap files";
@@ -113,6 +132,8 @@ let safe_basename file =
 let sigil_identify db file rgb =
   (* prerr_endline "Segment rgb"; *)
   let segments = sigil_segmenter rgb in
+  let segments = segment_filter (15*15) segments in
+
     if (List.length segments > 30) then
       []
     else
@@ -123,17 +144,21 @@ let sigil_identify db file rgb =
           let pts_list = Abez.mapi (
             fun i (x,region) ->
               (* rotter might not be the best, we might just try bitmap comparison *)
-              (* let out = "segments/" ^ (get_basename file) ^ ".seg."^(string_of_int i)^".pts" in				      *)
+              let out = "segments/" ^ (get_basename file) ^ ".seg."^(string_of_int i) in				    
+
               (* prerr_endline "Run our rotter"; *)
                 let pts = our_rotter x in
                   (* prerr_endline "Print our rotter"; *)
                   
 	          (* Rotter.print_rotter_to_file out pts; *)
-	          (pts,region)) segments in
+	          (pts,region,x,out)) segments in
             (* prerr_endline "Find closest"; *)
             let labels = List.map 
-              (fun (pts,region) -> 
-                 let (m,d) = find_closest db pts in
+              (fun (pts,region,bmp,out) -> 
+                 let (m,d) = find_closest_all_reflections db pts in
+                   (* let out = (out^"."^m^".png") in 
+                      prerr_endline ("writing "^out);
+	              bmp#save out (Some Png) [];   *)
                    (m,d,region) ) 
               pts_list in
               labels
@@ -191,10 +216,10 @@ let sigil_webcam () =
           (* prerr_endline "Shrink buffer!"; *)
           let shrunk = Shrinker.shrink bmp in
           let shrunk = cleanup shrunk in
-            (* prerr_endline ("Saving buffer " ^ filename);
-	       shrunk#save filename (Some Png) [];   *)
+            (*  prerr_endline ("Saving buffer " ^ filename);
+	        shrunk#save filename (Some Png) [];    *)
             (* prerr_endline "Identify"; *)
-            let identities = sigil_identify db ("Webcam-frame-"^(string_of_int !frame))  shrunk in
+            let identities = sigil_identify db filename  shrunk in
               (* prerr_endline "Report";  *)
               List.iter
                 (fun (best_match,distance,region) ->
