@@ -206,9 +206,9 @@ let sigil_webcam () =
   let db = load_sigils () in
   let (sock,fdi,fdo) = Cmlib.cm_connect "127.0.0.1" 9911 in
   let frame = ref 0 in
-    Cmlib.cm_lossyrequire fdo keyname;
+    Cmlib.cm_interactiverequire fdo keyname;
     while(true) do
-      let (buffer:int array) = Cmlib.cm_read_buffer fdi in
+      let (buffer:int array) = Cmlib.cm_interactive_read_buffer_last fdo fdi in
         (* prerr_endline ("Got a buffer "^(string_of_int !frame)); *)
         let bmp = Captchas.flatarray_to_bmp ~f:rgb width height buffer in
         let filename = "segments/Webcam-frame-"^(string_of_int !frame)^".png" in

@@ -232,6 +232,51 @@ let lossywriter listener sock fdi =
     done
   with (End_of_file) -> ()
 
+
+(* fdo is input from user
+   fdi is output to user
+*)
+let interactivewriter listener sock fdo fdi =
+  (* this function pops from the queue safely *)
+  let f popper =
+    wstatus "locking";
+    Mutex.lock listener.mutex;
+    wstatus "Waiting while empty";
+    while (Queue.is_empty listener.queue) do
+      (* this wait actually unlocks,
+         but locks when caught
+      *)
+      Condition.wait listener.cond listener.mutex;
+      wstatus "Waiting while empty x2";
+    done;
+    (* still locked! *)
+    wstatus "Popping queue";
+    let elm = popper listener.queue in
+      (* Queue.clear listener.queue; *)
+      Mutex.unlock listener.mutex;
+      (* not locked *)
+      let size = String.length elm in
+	wstatus ("Unlocking , have["^(string_of_int size)^"]");
+	write_line fdi listener.key;
+	write_line fdi (string_of_int (size - 1));
+	output fdi elm 0 size; 
+        (*	    write_string fdi elm ;*)
+	write_endline fdi; 
+  in
+    try 
+      while true do 
+        status "Reading a request";
+        let request = read_a_line fdo in
+          if (request = "next") then
+          f Queue.pop
+        else if (request = "last") then
+          f pop_everything
+        else
+	  write_line fdi "No clue what you did";
+          
+    done
+  with (End_of_file) -> ()
+
     
 (* DEQUEUE AFTER FAILURE UNLOCK MUTEX DURING FAILURE *)
 
@@ -263,6 +308,9 @@ let server (sock,s) =
       else if (r = "LOSSYREQUIRE") then
         let listener = make_listener key in
 	  lossywriter listener s fdo
+      else if (r = "INTERACTIVEREQUIRE") then
+        let listener = make_listener key in
+	  interactivewriter listener s fdi fdo
       else
         raise End_of_file
     with (End_of_file) -> ();

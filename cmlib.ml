@@ -32,6 +32,10 @@ let cm_lossyrequire fdo keyname =
   cm_write_line fdo ("LOSSYREQUIRE "^keyname);
   flush fdo
 ;;
+let cm_interactiverequire fdo keyname =
+  cm_write_line fdo ("INTERACTIVEREQUIRE "^keyname);
+  flush fdo
+;;
 
 
 let cm_send_buffer fdo key buf =
@@ -75,6 +79,16 @@ let cm_read_buffer fdi =
 	  let (arr:int array) = Marshal.from_string str 0 in 
 	    arr
 ;;
+
+let cm_interactive_read_buffer_generic action fdo fdi =
+  cm_write_line ~flush:true fdo action;
+  cm_read_buffer fdi
+;;
+
+let cm_interactive_read_buffer_next = cm_interactive_read_buffer_generic "next" ;;
+let cm_interactive_read_buffer_last = cm_interactive_read_buffer_generic "last" ;;
+
+
 
 (*
 let cm_read_int_array fdi buffer =
