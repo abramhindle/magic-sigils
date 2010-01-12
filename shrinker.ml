@@ -40,12 +40,11 @@ let get_getter_of_bmp white bmp =
       (height,width,getter)
 ;;
 
-let shrink ?n:(npix=8) bmp =
+let shrink ?minwhite:(minwhite=128) ?n:(npix=8) bmp =
     let white = 255 in
     let (height,width,getter) = get_getter_of_bmp white bmp in
     let bmp' = new rgb24 width height in
 
-    let minwhite = 128 in
     let white_col = { r = 255 ; g = 255; b = 255 } in
     let black_col = { r = 0 ; g = 0; b = 0 } in
     let dxdy = [ (-1,-1) ; (-1,0) ; (-1,1) ;

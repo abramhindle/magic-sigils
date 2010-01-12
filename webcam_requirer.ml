@@ -73,7 +73,22 @@ let cm_read_buffer fdi =
 	    arr
 ;;
 
-let keyname = "324x248_rgb_int_webcam" ;;
+let arg_parse_files () = 
+  let files = ref [] in
+    Arg.parse [] (fun s -> files := s :: !files) "bitmap files";
+    let files = List.rev !files in
+      files
+;;
+
+
+
+let keyname = 
+  let keys = arg_parse_files() in
+    if (List.length keys >= 1) then 
+      List.hd keys
+    else
+      "324x248_rgb_int_webcam" 
+;;
 
 let (sock,fdi,fdo) = cm_connect "127.0.0.1" 9911 ;;
 cm_write_line fdo ("REQUIRE "^keyname) ;;
